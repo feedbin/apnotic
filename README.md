@@ -38,6 +38,9 @@ require 'apnotic'
 # create a persistent connection
 connection = Apnotic::Connection.new(cert_path: "apns_certificate.pem", cert_pass: "pass")
 
+# or in case of token-based authentication
+connection = Apnotic::Connection.new(cert_path: "apns_key.p", auth_method: :token, key_id: "YYYYXXXXZZ", team_id: "XXXXYYYYZZ")
+
 # create a notification for a specific device token
 token = "6c267f26b173cd9595ae2f6702b1ab560371a60e7c8a9e27419bd0fa4a42e58f"
 
@@ -299,7 +302,7 @@ The push object to be sent in an async call.
  ```
 
  * **http2_request**  → **`NetHttp2::Request`**
- 
+
  Returns the HTTP/2 request of the push.
 
 
