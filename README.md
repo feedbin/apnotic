@@ -39,13 +39,14 @@ require 'apnotic'
 connection = Apnotic::Connection.new(cert_path: "apns_certificate.pem", cert_pass: "pass")
 
 # or in case of token-based authentication
-connection = Apnotic::Connection.new(cert_path: "apns_key.p", auth_method: :token, key_id: "YYYYXXXXZZ", team_id: "XXXXYYYYZZ")
+connection = Apnotic::Connection.new(cert_path: "apns_key.p8", auth_method: :token, key_id: "YYYYXXXXZZ", team_id: "XXXXYYYYZZ")
 
 # create a notification for a specific device token
 token = "6c267f26b173cd9595ae2f6702b1ab560371a60e7c8a9e27419bd0fa4a42e58f"
 
 notification       = Apnotic::Notification.new(token)
 notification.alert = "Notification from Apnotic!"
+notification.topic = 'com.bundle.name'
 
 # send (this is a blocking call)
 response = connection.push(notification)
@@ -156,6 +157,9 @@ Apnotic::Connection.new(options)
 |-----|-----
 | :cert_path | Required. The path to a valid APNS push certificate in .pem or .p12 format, or any object that responds to `:read`.
 | :cert_pass | Optional. The certificate's password.
+| :auth_method | Optional, :token or :cert.
+| :key_id | Optional, key for .p8 key.
+| :team_id | Optionap, team id for .p8 key.
 | :url | Optional. Defaults to https://api.push.apple.com:443.
 | :connect_timeout | Optional. Expressed in seconds, defaults to 30.
 
