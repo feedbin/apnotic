@@ -3,9 +3,8 @@ module Apnotic
   class Request
     attr_reader :path, :headers, :body
 
-    def initialize(notification, options = {})
+    def initialize(notification)
       @path    = "/3/device/#{notification.token}"
-      @token   = options[:token]
       @headers = build_headers_for notification
       @body    = notification.body
     end
@@ -19,7 +18,7 @@ module Apnotic
       h.merge!('apns-priority' => notification.priority) if notification.priority
       h.merge!('apns-topic' => notification.topic) if notification.topic
       h.merge!('apns-collapse-id' => notification.apns_collapse_id) if notification.apns_collapse_id
-      h.merge!('authorization' => "bearer #{@token}") if @token
+      h.merge!('authorization' => notification.authorization_header) if notification.authorization_header
       h
     end
 

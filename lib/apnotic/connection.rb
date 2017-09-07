@@ -24,6 +24,7 @@ module Apnotic
       @auth_method     = options[:auth_method] || :cert
       @team_id         = options[:team_id]
       @key_id          = options[:key_id]
+      @first_push      = true
 
       raise "Cert file not found: #{@cert_path}" unless @cert_path && (@cert_path.respond_to?(:read) || File.exist?(@cert_path))
 
@@ -31,7 +32,7 @@ module Apnotic
     end
 
     def push(notification, options={})
-      request  = Apnotic::Request.new(notification, request_options)
+      request  = prepare_request(notification)
       response = @client.call(:post, request.path,
         body:    request.body,
         headers: request.headers,
@@ -41,11 +42,16 @@ module Apnotic
     end
 
     def push_async(push)
-      @client.call_async(push.http2_request)
+      if @first_push
+        @first_push = false
+        @client.call_async(push.http2_request)
+      else
+        delayed_push_async(push)
+      end
     end
 
     def prepare_push(notification)
-      request       = Apnotic::Request.new(notification, request_options)
+      request       = prepare_request(notification)
       http2_request = @client.prepare_request(:post, request.path,
         body:    request.body,
         headers: request.headers
@@ -66,6 +72,33 @@ module Apnotic
     end
 
     private
+
+    def prepare_request(notification)
+      notification.authorization = provider_token if @auth_method == :token
+      Apnotic::Request.new(notification)
+    end
+
+    def delayed_push_async(push)
+      if streams_available?
+        @client.call_async(push.http2_request)
+      else
+        sleep 0.001
+        delayed_push_async(push)
+      end
+    end
+
+    def streams_available?
+      remote_max_concurrent_streams - @client.stream_count > 0
+    end
+
+    def remote_max_concurrent_streams
+      # 0x7fffffff is the default value from http-2 gem (2^31)
+      if @client.remote_settings[:settings_max_concurrent_streams] == 0x7fffffff
+        0
+      else
+        @client.remote_settings[:settings_max_concurrent_streams]
+      end
+    end
 
     def ssl_context
       @auth_method == :cert ? build_ssl_context : nil
@@ -96,12 +129,6 @@ module Apnotic
         end
         cert
       end
-    end
-
-    def request_options
-      options = {}
-      options.merge!(token: provider_token) if @auth_method == :token
-      options
     end
 
     def provider_token
